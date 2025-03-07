@@ -6,7 +6,7 @@ export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   try {
-    const { query, focus } = await req.json();
+    const { query, system, temperature } = await req.json();
     
     if (!query) {
       return NextResponse.json(
@@ -15,10 +15,12 @@ export async function POST(req: NextRequest) {
       );
     }
     
+    const systemPrompt = system || 'Найди актуальную информацию о запросе пользователя. Для каждого результата укажи заголовок, URL источника и основное содержание.';
+    
     const searchResults = await perplexityClient.search({
       query,
-      focus: focus || 'technical',
-      includeCitations: true
+      system: systemPrompt,
+      temperature: temperature || 0.7
     });
     
     return NextResponse.json({ results: searchResults });

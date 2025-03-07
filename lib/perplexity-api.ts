@@ -81,7 +81,7 @@ export class Perplexity {
   /**
    * Извлечение поисковых результатов из ответа API
    */
-  private extractSearchResults(data: any): SearchResult[] {
+  private extractSearchResults(data: { choices?: Array<{ message?: { content?: string } }> }): SearchResult[] {
     // Проверяем, что у нас есть ответ от API
     if (!data.choices || !data.choices[0]?.message?.content) {
       return [];

@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     if (isSearchQuery) {
       // Создаем поток для поискового запроса
       // Сохраняем результаты поиска для передачи в заголовках
-      let searchResultsData: any = null;
+      let searchResultsData: { query: string; results: unknown } | null = null;
       
       const stream = new ReadableStream({
         async start(controller) {
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
     
     // Обработка обычного запроса через агент
     // Сохраняем данные поиска для заголовка, если агент решит запустить поиск
-    let searchResultsData: any = null;
+    let searchResultsData: { query: string; results: unknown } | null = null;
     
     const stream = new ReadableStream({
       async start(controller) {
@@ -118,8 +118,8 @@ export async function POST(req: Request) {
           const result = await agentProcessor.handleMessage(userQuery);
           
           // Проверяем наличие результатов поиска в результате работы агента
-          // Используем типизацию any для предполагаемых дополнительных полей
-          const resultWithSearch = result as any;
+          // Используем типизацию для предполагаемых дополнительных полей
+          const resultWithSearch = result as { response: string; searchResults?: unknown; searchQuery?: string };
           
           if (resultWithSearch.searchResults) {
             searchResultsData = {

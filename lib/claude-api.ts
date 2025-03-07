@@ -44,7 +44,7 @@ export async function generateClaudeResponse(
 /**
  * Функция для анализа поисковых результатов
  */
-export async function analyzeSearchResults(searchResults: any, context: string) {
+export async function analyzeSearchResults(searchResults: unknown, context: string) {
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307', max_tokens: 1024,

@@ -2,9 +2,7 @@
 
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
-import { Thread } from "@/components/assistant-ui/thread";
 import { ThreadList } from "@/components/assistant-ui/thread-list";
-import { useChat } from "ai/react";
 import { useState, useEffect } from "react";
 import { SearchResults } from "@/components/SearchResults";
 import { Message } from "ai";
@@ -36,7 +34,7 @@ interface SearchMessage extends Omit<Message, 'role'> {
   role: string;
   searchResults?: {
     query: string;
-    results: any[];
+    results: unknown[];
   };
 }
 
