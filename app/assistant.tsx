@@ -29,12 +29,20 @@ const tools = {
   }
 };
 
+// Тип для результата поиска, соответствует типу в компоненте SearchResults
+type SearchResult = {
+  title: string;
+  url: string;
+  snippet: string;
+  source?: string;
+};
+
 // Тип для сообщения с результатами поиска
 interface SearchMessage extends Omit<Message, 'role'> {
   role: string;
   searchResults?: {
     query: string;
-    results: unknown[];
+    results: SearchResult[];
   };
 }
 
