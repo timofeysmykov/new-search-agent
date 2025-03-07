@@ -52,4 +52,7 @@ export class AgentProcessor {
 }
 
 // Экспорт экземпляра процессора
-export const agentProcessor = new AgentProcessor();
+const agentProcessor = new AgentProcessor();
+
+export default agentProcessor;
+export { agentProcessor };

@@ -1,9 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 // Инициализация клиента Anthropic
-export const anthropic = new Anthropic({
+const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY || '',
 });
+
+export { anthropic };
+export default anthropic;
 
 export type ClaudeMessage = {
   role: 'user' | 'assistant' | 'system';
@@ -18,12 +21,15 @@ export async function generateClaudeResponse(
   systemPrompt?: string
 ) {
   try {
+    // Отделяем системное сообщение, так как оно не может быть в массиве messages
+    // согласно API Anthropic
+    const filteredMessages = messages.filter(msg => msg.role !== 'system');
+    
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20240307',
-      max_tokens: 1024,
+      model: 'claude-3-haiku-20240307', max_tokens: 1024,
       system: systemPrompt || "Ты AI агент с доступом к поиску. Отвечай точно, кратко и по существу.",
-      messages: messages.map(msg => ({
-        role: msg.role,
+      messages: filteredMessages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.content,
       })),
     });
@@ -41,8 +47,7 @@ export async function generateClaudeResponse(
 export async function analyzeSearchResults(searchResults: any, context: string) {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20240307',
-      max_tokens: 1024,
+      model: 'claude-3-haiku-20240307', max_tokens: 1024,
       system: "Твоя задача - проанализировать результаты поиска и выделить наиболее важную информацию.",
       messages: [
         { 
@@ -52,7 +57,12 @@ export async function analyzeSearchResults(searchResults: any, context: string) 
       ],
     });
 
-    return response.content[0].text;
+    // Проверка типа contentBlock и безопасный доступ к тексту
+    if (response.content[0].type === 'text') {
+      return response.content[0].text;
+    }
+    
+    return "Не удалось получить текстовый ответ от API";
   } catch (error) {
     console.error('Ошибка при анализе результатов поиска:', error);
     throw error;
@@ -65,8 +75,7 @@ export async function analyzeSearchResults(searchResults: any, context: string) 
 export async function generatePlan(query: string) {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20240307',
-      max_tokens: 1024,
+      model: 'claude-3-haiku-20240307', max_tokens: 1024,
       system: "Ты помощник, который анализирует запросы и составляет план действий для ответа на них.",
       messages: [
         { 
@@ -76,11 +85,16 @@ export async function generatePlan(query: string) {
       ],
     });
 
+    // Проверка типа contentBlock и безопасный доступ к тексту
+    if (response.content[0].type !== 'text') {
+      return { steps: [] };
+    }
+
     // Парсинг плана из ответа
     const planText = response.content[0].text;
     const steps = planText.split('\n')
-      .filter(line => line.trim().length > 0)
-      .map(line => {
+      .filter((line: string) => line.trim().length > 0)
+      .map((line: string) => {
         // Простая эвристика для определения необходимости поиска
         const needsSearch = line.toLowerCase().includes('поиск') || 
                            line.toLowerCase().includes('найти') ||
@@ -123,8 +137,7 @@ function extractSearchQuery(stepText: string): string {
 export async function generateFinalResponse(context: string) {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20240307',
-      max_tokens: 1024,
+      model: 'claude-3-haiku-20240307', max_tokens: 1024,
       system: "Составь информативный и полезный ответ на основе предоставленного контекста.",
       messages: [
         { 
@@ -134,7 +147,12 @@ export async function generateFinalResponse(context: string) {
       ],
     });
 
-    return response.content[0].text;
+    // Проверка типа contentBlock и безопасный доступ к тексту
+    if (response.content[0].type === 'text') {
+      return response.content[0].text;
+    }
+    
+    return "Не удалось получить текстовый ответ от API";
   } catch (error) {
     console.error('Ошибка при генерации финального ответа:', error);
     throw error;

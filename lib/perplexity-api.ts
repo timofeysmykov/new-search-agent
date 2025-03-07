@@ -1,21 +1,20 @@
-// Простая реализация клиента для Perplexity API
+// Реализация клиента для Perplexity API
 
 /**
  * Тип для параметров поискового запроса
  */
 export type PerplexitySearchParams = {
   query: string;
-  focus?: 'technical' | 'general' | 'news' | 'writing';
-  includeCitations?: boolean;
-  sourceFilter?: 'reliable_sources_only' | 'all_sources';
+  temperature?: number;
+  system?: string;
 };
 
 /**
  * Тип для результата поиска
  */
 export type SearchResult = {
-  title: string;
-  url: string;
+  title?: string;
+  url?: string;
   snippet: string;
   source?: string;
 };
@@ -26,36 +25,40 @@ export type SearchResult = {
 export class Perplexity {
   private apiKey: string;
   private model: string;
-  private sourceFilter: string;
   private baseUrl: string = 'https://api.perplexity.ai';
 
   constructor(config: {
     apiKey: string;
     model?: string;
-    sourceFilter?: string;
   }) {
     this.apiKey = config.apiKey;
     this.model = config.model || 'sonar-pro';
-    this.sourceFilter = config.sourceFilter || 'reliable_sources_only';
   }
 
   /**
-   * Метод для выполнения поискового запроса
+   * Метод для выполнения поискового запроса через chat/completions API
    */
   async search(params: PerplexitySearchParams): Promise<SearchResult[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/search`, {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
         body: JSON.stringify({
-          query: params.query,
           model: this.model,
-          focus: params.focus || 'technical',
-          source_filter: params.sourceFilter || this.sourceFilter,
-          include_citations: params.includeCitations ?? true,
+          temperature: params.temperature || 0.7,
+          messages: [
+            {
+              role: 'system',
+              content: params.system || 'Найди актуальную информацию о запросе пользователя. Для каждого результата укажи заголовок, URL источника и основное содержание.'
+            },
+            {
+              role: 'user',
+              content: params.query
+            }
+          ]
         })
       });
 
@@ -66,8 +69,8 @@ export class Perplexity {
 
       const data = await response.json();
       
-      // Форматируем полученные результаты
-      return this.formatResults(data);
+      // Извлекаем результаты из ответа API
+      return this.extractSearchResults(data);
 
     } catch (error) {
       console.error('Ошибка при запросе к Perplexity API:', error);
@@ -76,45 +79,94 @@ export class Perplexity {
   }
 
   /**
-   * Форматирование сырых результатов API в удобный формат
+   * Извлечение поисковых результатов из ответа API
    */
-  private formatResults(rawData: any): SearchResult[] {
-    // Если API ответ не содержит results, возвращаем пустой массив
-    if (!rawData.results || !Array.isArray(rawData.results)) {
+  private extractSearchResults(data: any): SearchResult[] {
+    // Проверяем, что у нас есть ответ от API
+    if (!data.choices || !data.choices[0]?.message?.content) {
       return [];
     }
 
-    // Преобразуем ответ API в формат SearchResult
-    return rawData.results.map((result: any) => ({
-      title: result.title || 'Без названия',
-      url: result.url || '',
-      snippet: result.snippet || result.content || '',
-      source: result.source || ''
-    }));
+    // Получаем текст ответа
+    const responseText = data.choices[0].message.content;
+    
+    // Пытаемся найти ссылки и соответствующие им описания
+    const results: SearchResult[] = [];
+
+    // Простая эвристика для извлечения результатов
+    const lines = responseText.split('\n');
+    let currentResult: Partial<SearchResult> = { snippet: '' };
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Пропускаем пустые строки
+      if (!trimmedLine) continue;
+      
+      // Проверяем, содержит ли строка URL
+      const urlMatch = trimmedLine.match(/https?:\/\/[^\s)]+/g);
+      if (urlMatch) {
+        // Если у нас уже был начат результат, добавляем его в список
+        if (currentResult.snippet) {
+          results.push(currentResult as SearchResult);
+        }
+        
+        // Начинаем новый результат
+        currentResult = {
+          url: urlMatch[0],
+          snippet: trimmedLine.replace(urlMatch[0], '').trim()
+        };
+      } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ') || /^\d+\./.test(trimmedLine)) {
+        // Если это маркированный список, считаем это новым результатом
+        if (currentResult.snippet) {
+          results.push(currentResult as SearchResult);
+        }
+        
+        currentResult = { snippet: trimmedLine };
+      } else {
+        // Дополняем текущий результат
+        currentResult.snippet += ' ' + trimmedLine;
+      }
+    }
+    
+    // Добавляем последний результат, если он существует
+    if (currentResult.snippet) {
+      results.push(currentResult as SearchResult);
+    }
+    
+    // Если не удалось извлечь отдельные результаты, возвращаем весь ответ как один результат
+    if (results.length === 0) {
+      return [{ snippet: responseText }];
+    }
+    
+    return results;
   }
 }
 
 /**
  * Создание экземпляра клиента Perplexity
  */
-export const perplexityClient = new Perplexity({
+const perplexityClient = new Perplexity({
   apiKey: process.env.PERPLEXITY_API_KEY || '',
-  model: 'sonar-pro',
-  sourceFilter: 'reliable_sources_only'
+  model: 'sonar-pro'
 });
+
+export { perplexityClient };
+export default perplexityClient;
 
 /**
  * Функция для выполнения поиска
  */
-export async function search(query: string, focus: 'technical' | 'general' | 'news' | 'writing' = 'technical') {
+async function search(query: string, system?: string) {
   try {
     return await perplexityClient.search({
       query,
-      focus,
-      includeCitations: true
+      system: system || 'Ты поисковый агент. Найди актуальную информацию о запросе пользователя. Для ответа используй только факты из интернета.'
     });
   } catch (error) {
     console.error('Ошибка при поиске:', error);
     throw error;
   }
 }
+
+export { search };
