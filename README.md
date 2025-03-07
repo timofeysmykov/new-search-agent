@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI-Ассистент с Claude и Perplexity
 
-## Getting Started
+Это приложение-ассистент на основе языковой модели Claude 3.5 Haiku и поисковой системы Perplexity, разработанное с использованием Next.js и assistant-ui. Приложение предоставляет интерфейс для взаимодействия с AI-ассистентом, который может отвечать на вопросы, используя свои знания или выполняя поиск в интернете.
 
-First, run the development server:
+## Архитектура приложения
+
+```
+Frontend (React)           Backend (Next.js)
+┌───────────────────┐      ┌──────────────────────┐
+│  assistant-ui     │      │  AI Agent Core       │
+│  Chat Interface    ├──────►  Claude 3.5 Haiku    │
+│  Generative UI     │      │  Perplexity API      │
+└───────────────────┘      └──────────────────────┘
+```
+
+## Основные компоненты
+
+1. **Frontend**:
+   - Чат-интерфейс с использованием assistant-ui
+   - Компонент SearchResults для визуализации результатов поиска
+   - Стилизация через TailwindCSS
+
+2. **Backend**:
+   - API-интеграция с Claude 3.5 Haiku для обработки запросов
+   - API-интеграция с Perplexity для выполнения поисковых запросов
+   - Обработка и анализ результатов через AgentProcessor
+
+## Настройка проекта
+
+### Требования
+
+- Node.js 18+ 
+- npm или yarn
+- API-ключи для Claude и Perplexity
+
+### Установка
+
+1. Клонируйте репозиторий:
+   ```bash
+   git clone [url-репозитория]
+   cd ai-assistant-app/serach-agent
+   ```
+
+2. Установите зависимости:
+   ```bash
+   npm install
+   ```
+
+3. Создайте файл `.env.local` с вашими API-ключами:
+   ```
+   CLAUDE_API_KEY=ваш-ключ-claude
+   PERPLEXITY_API_KEY=ваш-ключ-perplexity
+   ```
+
+## Запуск приложения
+
+Запустите сервер разработки:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000) в браузере для доступа к приложению.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Использование
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Обычные запросы**: Введите ваш вопрос в поле ввода и получите ответ от Claude 3.5 Haiku.
 
-## Learn More
+2. **Поисковые запросы**: Для запросов, требующих актуальной информации из интернета, используйте команды поиска, например: «найди информацию о...», «поиск...» или «узнай...».
 
-To learn more about Next.js, take a look at the following resources:
+3. **Результаты поиска**: Результаты поиска будут отображаться в виде карточек с заголовками, URL и фрагментами текста.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Характеристики
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Стриминг ответов в реальном времени
+- Интеграция с ассистентом на основе Claude 3.5 Haiku
+- Поиск в интернете через Perplexity API
+- Современный UI с адаптивным дизайном
+- Многопоточность для параллельной обработки запросов
 
-## Deploy on Vercel
+## Структура проекта
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+/
+├── app/                 # Next.js приложение
+│   ├── api/             # API маршруты
+│   │   ├── chat/        # API для чата с Claude
+│   │   └── perplexity/  # API для поиска через Perplexity
+│   ├── assistant.tsx    # Главный компонент ассистента
+│   └── page.tsx         # Входная точка приложения
+├── components/          # React компоненты
+│   ├── assistant-ui/    # Компоненты для UI ассистента
+│   ├── SearchResults.tsx# Компонент для результатов поиска
+│   └── ui/              # Базовые UI компоненты
+├── lib/                 # Библиотеки и утилиты
+│   ├── agent-processor.ts # Обработка запросов агента
+│   ├── claude-api.ts    # Интеграция с Claude API
+│   ├── perplexity-api.ts# Интеграция с Perplexity API
+│   └── utils.ts         # Вспомогательные функции
+└── public/              # Статические файлы
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
